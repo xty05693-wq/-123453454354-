@@ -1,0 +1,29 @@
+name: Build PythonOS ISO
+
+on:
+  push:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install tools
+        run: sudo apt update && sudo apt install -y gcc-i686-linux-gnu binutils-i686-linux-gnu xorriso grub-pc-bin
+      - name: Compile kernel
+        run: |
+          i686-linux-gnu-gcc -ffreestanding -nostdlib -fno-exceptions -fno-rtti -O2 -c kernel.cpp -o kernel.o
+          i686-linux-gnu-ld -T linker.ld -o kernel.elf kernel.o
+          i686-linux-gnu-objcopy -O binary kernel.elf kernel.bin
+      - name: Build ISO
+        run: |
+          mkdir -p iso/boot/grub
+          cp kernel.bin iso/boot/
+          cp grub.cfg iso/boot/grub/
+          grub-mkrescue -o PythonOS.iso iso/
+      - name: Upload ISO
+        uses: actions/upload-artifact@v4
+        with:
+          name: PythonOS-ISO
+          path: PythonOS.iso
